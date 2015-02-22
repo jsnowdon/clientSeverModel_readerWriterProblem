@@ -9,6 +9,16 @@
 
 #include "../include/header.h"
 
+ /* TODO
+
+    create queues for each cluster
+    check if the first memeber of the queue is reader or writer
+    if reader let them read, and increment reader count
+    once reader is done decriment reader count
+    if writer, wait till reader count is 0, turn on writer flag
+    once writer is done turn off writer flag
+*/
+
 int main(int argc, char *argv[])
 {
 
@@ -16,6 +26,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in server_addr; /* server address */
     struct sockaddr_in client_addr; /* client address */
     socklen_t addrlen = sizeof(client_addr);
+    char clientRelease[10];
 
     msg clientRequest; 
 
@@ -37,6 +48,8 @@ int main(int argc, char *argv[])
         return 0;
     }
 
+    while(1){
+
     /* Recieve a message from the client */
     if ( recvfrom( socketID, (void *) &clientRequest, sizeof(clientRequest), 0, (struct sockaddr *) &client_addr, &addrlen ) < 0 )
     {
@@ -44,15 +57,23 @@ int main(int argc, char *argv[])
         return 0;
     }
     
-    printf("Message: %s\n", clientRequest.filename);
+    printf("Message: %d, %d, %s\n", clientRequest.clusterID, clientRequest.isWriting, clientRequest.filename);
 
-   /* strcpy(message, "ack");
-
-    if ( sendto( socketID, message, sizeof(message), 0, (struct sockaddr *) &client_addr, addrlen ) < 0 )
+    if ( sendto( socketID, SERVER_ACK, sizeof(SERVER_ACK), 0, (struct sockaddr *) &client_addr, addrlen ) < 0 )
     {
         printf("Error sending message to client\n");
         return 0;
-    }*/
+    }
+
+    if ( recvfrom( socketID, clientRelease, sizeof(clientRelease), 0, (struct sockaddr *) &client_addr, &addrlen ) < 0 )
+    {
+        printf("Error recieving message from client\n");
+        return 0;
+    }
+
+    printf("Recieved back: %s\n", clientRelease);
+
+    }
 
     close( socketID );
 

@@ -6,7 +6,6 @@
  * Student#: 0709496
  *
  */
-
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -17,15 +16,16 @@
 #include <string.h>
 #include <sys/types.h>
 #include <pthread.h>
-#include <time.h> 
+#include <time.h>
 
-#define FILENAME "./file.bin"
-#define PORT_NUM 3333;
+ #define PORT_NUM 3333
+ #define SERVER_ACK "ack"
+ #define CLIENT_RELEASE "done"
 
 #pragma pack(1)   // this helps to pack the struct to 5-bytes
 typedef struct packet{
 
-	int id;
+	int clusterID;
 	int isWriting;
 	char filename[20];
 
@@ -34,7 +34,8 @@ typedef struct packet{
 
 typedef struct threadInfo{
 
-   int  thread_id;
+   int thread_id;
+   int cluster_id;
    int iterations;
    int numOfWriters;
    int numOfReaders;

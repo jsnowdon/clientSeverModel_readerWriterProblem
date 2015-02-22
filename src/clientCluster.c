@@ -34,6 +34,7 @@ int main(int argc, char *argv[])
     {
         /*initialize struct*/
         cluster_data_array[i].thread_id = i+1;
+        cluster_data_array[i].cluster_id = i+1;
         cluster_data_array[i].iterations = iterations;
         cluster_data_array[i].numOfWriters = numOfWriters;
         cluster_data_array[i].numOfReaders = numOfReaders;
@@ -69,12 +70,13 @@ void *clusterThreads(void *threadData)
     thread_data *my_data;
     my_data = (thread_data *) threadData;
 
-    int numOfReaders, numOfWriters, iterations, i, rc;
+    int numOfReaders, numOfWriters, iterations, i, rc, clusterID;
     char filename[20];
 
     numOfWriters = my_data->numOfWriters;
     numOfReaders = my_data->numOfReaders;
     iterations = my_data->iterations;
+    clusterID = my_data->cluster_id;
     strcpy(filename, my_data->filename);
 
     /*Initialize file*/
@@ -93,6 +95,7 @@ void *clusterThreads(void *threadData)
         reader_data_array[i].iterations = iterations;
         reader_data_array[i].numOfWriters = numOfWriters;
         reader_data_array[i].numOfReaders = numOfReaders;
+        reader_data_array[i].cluster_id = clusterID;
         strcpy(reader_data_array[i].filename, filename);
 
 
@@ -120,6 +123,7 @@ void *clusterThreads(void *threadData)
         writer_data_array[i].iterations = iterations;
         writer_data_array[i].numOfWriters = numOfWriters;
         writer_data_array[i].numOfReaders = numOfReaders;
+        writer_data_array[i].cluster_id = clusterID;
         strcpy(writer_data_array[i].filename, filename);
 
         /*create the pthread*/
@@ -158,20 +162,73 @@ void *readerThreads(void *threadData)
     thread_data *my_data;
     my_data = (thread_data *) threadData;
 
-    int threadID, iterations, bufferSize, i, j;
+    int threadID, clusterID, iterations, bufferSize, i, j;
     FILE *fp;
     int temp;
     char intString[sizeof(int)];
     char filename[20];
+    char msgFromServer[5];
+
+    /* Network variavbles */
+    int socketID;
+    struct sockaddr_in server_addr; /* server address */
+    struct sockaddr_in client_addr; /* client address */
+    socklen_t addrlen = sizeof(server_addr);
+
+    /* Message structure to pass to server */
+    msg msgToServer;
 
     /*Get data from struct*/
     threadID = my_data->thread_id;
     iterations = my_data->iterations;
     bufferSize = my_data->numOfWriters;
+    clusterID = my_data->cluster_id;
     strcpy(filename, my_data->filename);
+
+    /* Create the socket, but also ensure it worked */
+    if ( ( socketID = socket(AF_INET, SOCK_DGRAM, 0) ) < 0 ){
+        printf("Failure creating socket\n");
+        return 0;
+    } 
+
+    /* Create client address name */
+    client_addr.sin_family = AF_INET;
+    client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    client_addr.sin_port = 0;
+
+    /* bind the address name with the socket  */
+    if ( bind(socketID, (struct sockaddr*)&client_addr,sizeof(client_addr)) < 0 )
+    {
+        printf("Client bind failed\n");
+        return 0;
+    }
+
+    /* get server information */
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_port = htons(PORT_NUM);
+
+    /* create request message for server */
+    msgToServer.clusterID = clusterID;
+    msgToServer.isWriting = 0;
+    strcpy(msgToServer.filename, filename);
 
     for( i = 0; i < iterations; i++)
     {
+        /* send request to read the file to server */
+        if ( sendto(socketID, (void *) &msgToServer, sizeof(msgToServer), 0,(struct sockaddr *) &server_addr, addrlen ) < 0 ){
+            printf("Error sending message to server\n");
+            return 0;
+        }
+
+        /* wait for server to send back 'ack' */
+        if ( recvfrom(socketID, msgFromServer, sizeof(msgFromServer), 0,(struct sockaddr *) &server_addr, &addrlen) < 0 )
+        {
+            printf("Error recieving message from server\n");
+            return 0;
+        }
+
+        printf("Server says: %s\n", msgFromServer); 
 
         /*create buffer*/
         char *buffer = (char *)calloc(bufferSize,sizeof(int));
@@ -195,17 +252,24 @@ void *readerThreads(void *threadData)
             rewind(fp);
         }
 
-        printf("I am thread #%d, iteration #%d and the file contains: %s\n", threadID, i+1, buffer);
+        printf("I am part of cluster #%d, thread #%d, iteration #%d and the file contains: %s\n", clusterID, threadID, i+1, buffer);
 
         /*cleanup*/
         fclose(fp);
         free(buffer);
+
+        /* Tell server we are done with the file */
+        if ( sendto(socketID, CLIENT_RELEASE, sizeof(CLIENT_RELEASE), 0,(struct sockaddr *) &server_addr, addrlen ) < 0 ){
+            printf("Error sending message to server\n");
+            return 0;
+        }
 
         /*sleep for a bit*/
         sleep(rand()%2);
     }
 
     /* cleanup */
+    close(socketID);
     pthread_exit((void *)threadData);
 }
 
@@ -214,19 +278,73 @@ void *writerThreads(void *threadData)
     thread_data *my_data;
     my_data = (thread_data *) threadData;
 
-    int threadID, iterations, fileSize, i, j;
+    int threadID, clusterID, iterations, fileSize, i, j;
     FILE *fp;
     int temp;
     char filename[20];
+    char msgFromServer[5];
+
+    /* Network variavbles */
+    int socketID;
+    struct sockaddr_in server_addr; /* server address */
+    struct sockaddr_in client_addr; /* client address */
+    socklen_t addrlen = sizeof(server_addr);
+
+    /* Message structure to pass to server */
+    msg msgToServer;
 
     /*Get data from struct*/
     threadID = my_data->thread_id;
     iterations = my_data->iterations;
     fileSize = my_data->numOfWriters;
+    clusterID = my_data->cluster_id;
     strcpy(filename, my_data->filename);
+
+    /* Create the socket, but also ensure it worked */
+    if ( ( socketID = socket(AF_INET, SOCK_DGRAM, 0) ) < 0 ){
+        printf("Failure creating socket\n");
+        return 0;
+    } 
+
+    /* Create client address name */
+    client_addr.sin_family = AF_INET;
+    client_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    client_addr.sin_port = 0;
+
+    /* bind the address name with the socket  */
+    if ( bind(socketID, (struct sockaddr*)&client_addr,sizeof(client_addr)) < 0 )
+    {
+        printf("Client bind failed\n");
+        return 0;
+    }
+
+    /* get server information */
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    server_addr.sin_port = htons(PORT_NUM);
+
+    /* create request message for server */
+    msgToServer.clusterID = clusterID;
+    msgToServer.isWriting = 1;
+    strcpy(msgToServer.filename, filename);
 
     for( i = 0; i < iterations; i++)
     {
+        /* send request to read the file to server */
+        if ( sendto(socketID, (void *) &msgToServer, sizeof(msgToServer), 0,(struct sockaddr *) &server_addr, addrlen ) < 0 ){
+            printf("Error sending message to server\n");
+            return 0;
+        }
+
+        /* wait for server to send back 'ack' */
+        if ( recvfrom(socketID, msgFromServer, sizeof(msgFromServer), 0,(struct sockaddr *) &server_addr, &addrlen) < 0 )
+        {
+            printf("Error recieving message from server\n");
+            return 0;
+        }
+
+        printf("Server says: %s\n", msgFromServer); 
+
         fp = fopen(filename, "rb+");
 
         /*get all integers from file*/
@@ -263,6 +381,12 @@ void *writerThreads(void *threadData)
 
         /*cleanup*/
         fclose(fp);
+
+        /* Tell server we are done with the file */
+        if ( sendto(socketID, CLIENT_RELEASE, sizeof(CLIENT_RELEASE), 0,(struct sockaddr *) &server_addr, addrlen ) < 0 ){
+            printf("Error sending message to server\n");
+            return 0;
+        }
 
         /*sleep for a bit*/
         sleep(rand()%2);
