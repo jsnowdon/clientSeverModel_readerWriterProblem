@@ -7,7 +7,7 @@
  *
  */
 
-#include "../include/header.h"
+#include "../include/clientCluster.h"
 
 /* TODO:
     create sockets for each reader and writer combo
@@ -208,13 +208,14 @@ void *readerThreads(void *threadData)
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     server_addr.sin_port = htons(PORT_NUM);
 
-    /* create request message for server */
-    msgToServer.clusterID = clusterID;
-    msgToServer.isWriting = 0;
-    strcpy(msgToServer.filename, filename);
-
     for( i = 0; i < iterations; i++)
     {
+        /* create request message for server */
+        msgToServer.clusterID = clusterID;
+        msgToServer.isWriting = 0;
+        msgToServer.isRequest = 1;
+        strcpy(msgToServer.filename, filename);
+
         /* send request to read the file to server */
         if ( sendto(socketID, (void *) &msgToServer, sizeof(msgToServer), 0,(struct sockaddr *) &server_addr, addrlen ) < 0 ){
             printf("Error sending message to server\n");
@@ -227,8 +228,6 @@ void *readerThreads(void *threadData)
             printf("Error recieving message from server\n");
             return 0;
         }
-
-        printf("Server says: %s\n", msgFromServer); 
 
         /*create buffer*/
         char *buffer = (char *)calloc(bufferSize,sizeof(int));
@@ -258,8 +257,14 @@ void *readerThreads(void *threadData)
         fclose(fp);
         free(buffer);
 
+        /* slow it down */
+        /*sleep for a bit*/
+        sleep(rand()%2);
+
+        /* Create reply message for server */
+        msgToServer.isRequest = 0;
         /* Tell server we are done with the file */
-        if ( sendto(socketID, CLIENT_RELEASE, sizeof(CLIENT_RELEASE), 0,(struct sockaddr *) &server_addr, addrlen ) < 0 ){
+        if ( sendto(socketID, (void *) &msgToServer, sizeof(msgToServer), 0,(struct sockaddr *) &server_addr, addrlen ) < 0 ){
             printf("Error sending message to server\n");
             return 0;
         }
@@ -323,18 +328,23 @@ void *writerThreads(void *threadData)
     server_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
     server_addr.sin_port = htons(PORT_NUM);
 
-    /* create request message for server */
-    msgToServer.clusterID = clusterID;
-    msgToServer.isWriting = 1;
-    strcpy(msgToServer.filename, filename);
-
     for( i = 0; i < iterations; i++)
     {
+        /* create request message for server */
+        msgToServer.clusterID = clusterID;
+        msgToServer.isWriting = 1;
+        msgToServer.isRequest = 1;
+        strcpy(msgToServer.filename, filename);
+
+        //printf("threadID:%d, cluster:%d filename:%s\n", threadID, clusterID, filename);        
+
         /* send request to read the file to server */
         if ( sendto(socketID, (void *) &msgToServer, sizeof(msgToServer), 0,(struct sockaddr *) &server_addr, addrlen ) < 0 ){
             printf("Error sending message to server\n");
             return 0;
         }
+
+        //printf("SENT: id:%d, cluster%d\n", threadID, clusterID );
 
         /* wait for server to send back 'ack' */
         if ( recvfrom(socketID, msgFromServer, sizeof(msgFromServer), 0,(struct sockaddr *) &server_addr, &addrlen) < 0 )
@@ -343,7 +353,7 @@ void *writerThreads(void *threadData)
             return 0;
         }
 
-        printf("Server says: %s\n", msgFromServer); 
+        //printf("RECIEVED: id:%d, cluster%d\n", threadID, clusterID);
 
         fp = fopen(filename, "rb+");
 
@@ -382,8 +392,16 @@ void *writerThreads(void *threadData)
         /*cleanup*/
         fclose(fp);
 
+        /* slow it down */
+        /*sleep for a bit*/
+        sleep(rand()%2);
+
+        /* Create reply message for server */
+        msgToServer.isRequest = 0;
+
+        //printf("SENT REPLY: id:%d, cluster%d\n", threadID, clusterID );
         /* Tell server we are done with the file */
-        if ( sendto(socketID, CLIENT_RELEASE, sizeof(CLIENT_RELEASE), 0,(struct sockaddr *) &server_addr, addrlen ) < 0 ){
+        if ( sendto(socketID, (void *) &msgToServer, sizeof(msgToServer), 0,(struct sockaddr *) &server_addr, addrlen ) < 0 ){
             printf("Error sending message to server\n");
             return 0;
         }
@@ -393,6 +411,7 @@ void *writerThreads(void *threadData)
     }
 
     /* cleanup */
+    close(socketID);
     pthread_exit((void *)threadData);
 }
 

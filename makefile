@@ -13,32 +13,60 @@ IDIR = ./include
 BDIR = ./bin
 
 #Objects
-OBJS       = client.o
-OBJS_DEBUG = client_DEBUG.o
-
-#Execution
-client: $(OBJS)
-		@ $(CC) $(LFLAGS) $(OBJS) -o $(BDIR)/client
-
-client.o: $(SDIR)/clientCluster.c $(IDIR)/header.h
-		@ $(CC) $(CFLAGS) $(SDIR)/clientCluster.c -o client.o
-
-#DEBUG Execution
-client_DEBUG: $(OBJS_DEBUG)
-		$(CC) $(LFLAGS) $(OBJS_DEBUG) -o $(BDIR)/client
-
-client_DEBUG.o: $(SDIR)/clientCluster.c $(IDIR)/header.h
-		$(CC) $(CFLAGS) $(SDIR)/clientCluster.c -o client_DEBUG.o
+CLIENT_OBJS       = client.o
+CLIENT_OBJS_DEBUG = client_DEBUG.o
+SERVER_OBJS = server.o queue.o
+SERVER_OBJS_DEBUG = server_DEBUG.o queue_DEBUG.o
 
 #Make Targets
-all: client
+all: queue client server
 
-run: client
-		@ $(BDIR)/client
-
-debug: client_DEBUG
-		$(BDIR)/client
+debug: queue_DEBUG client_DEBUG server_DEBUG
 
 clean:
 		@ rm $(BDIR)/client *.o
+		@ rm $(BDIR)/server *.o
+		@ rm $(BDIR)/queue *.o
 		@ rm ./file*.bin
+
+#Execution
+client: $(CLIENT_OBJS)
+		@ $(CC) $(LFLAGS) $(CLIENT_OBJS) -o $(BDIR)/client
+
+client.o: $(SDIR)/clientCluster.c $(IDIR)/clientCluster.h
+		@ $(CC) $(CFLAGS) $(SDIR)/clientCluster.c -o client.o
+
+#DEBUG Execution
+client_DEBUG: $(CLIENT_OBJS_DEBUG)
+		$(CC) $(LFLAGS) $(CLIENT_OBJS_DEBUG) -o $(BDIR)/client
+
+client_DEBUG.o: $(SDIR)/clientCluster.c $(IDIR)/clientCluster.h
+		$(CC) $(CFLAGS) $(SDIR)/clientCluster.c -o client_DEBUG.o
+
+#Execution
+server: $(SERVER_OBJS)
+		@ $(CC) $(LFLAGS) $(SERVER_OBJS) -o $(BDIR)/server
+
+server.o: $(SDIR)/queueServer.c $(IDIR)/header.h
+		@ $(CC) $(CFLAGS) $(SDIR)/queueServer.c -o server.o
+
+#DEBUG Execution
+server_DEBUG: $(SERVER_OBJS_DEBUG)
+		$(CC) $(LFLAGS) $(SERVER_OBJS_DEBUG) -o $(BDIR)/server
+
+server_DEBUG.o: $(SDIR)/queueServer.c $(IDIR)/header.h
+		$(CC) $(CFLAGS) $(SDIR)/queueServer.c -o server_DEBUG.o
+
+#Execution
+queue: $(SERVER_OBJS)
+		@ $(CC) $(LFLAGS) $(SERVER_OBJS) -o $(BDIR)/queue
+
+queue.o: $(SDIR)/queue.c $(IDIR)/header.h
+		@ $(CC) $(CFLAGS) $(SDIR)/queue.c -o queue.o
+
+#DEBUG Execution
+queue_DEBUG: $(SERVER_OBJS_DEBUG)
+		$(CC) $(LFLAGS) $(SERVER_OBJS_DEBUG) -o $(BDIR)/queue
+
+queue_DEBUG.o: $(SDIR)/queue.c $(IDIR)/header.h
+		$(CC) $(CFLAGS) $(SDIR)/queue.c -o queue_DEBUG.o
