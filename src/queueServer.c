@@ -12,15 +12,12 @@
 int main(int argc, char *argv[])
 {
 
-    int socketID, index, numOfQueues, i;
+    int socketID, index, i, empty = 0;
     struct sockaddr_in server_addr; /* server address */
     struct sockaddr_in client_addr; /* client address */
     socklen_t addrlen = sizeof(client_addr);
     itemType clientInfo, queueHeadItem;
     msg clientMsg;
-
-    /* No queues yet */
-    numOfQueues = 0; 
 
     /* Initilize all the queues */
     for ( i = 0; i < MAX_NUMOFQUEUES; i++ )
@@ -60,7 +57,7 @@ int main(int argc, char *argv[])
         /* if server recieved a request from the client */
         if ( clientMsg.isRequest == 1 )
         {
-            printf("Request: %d, %d, %s\n", clientMsg.clusterID, clientMsg.isWriting, clientMsg.filename);
+            printf("Request: Cluster: %d, Writer: %d, Filename: %s\n", clientMsg.clusterID, clientMsg.isWriting, clientMsg.filename);
 
             /* Create queue item */
             clientInfo.client_addr = client_addr;
@@ -72,36 +69,25 @@ int main(int argc, char *argv[])
 
            // printf("id:%d, writing:%d, request:%d\n",clientMsg.clusterID, clientMsg.isWriting, clientMsg.isRequest);
 
-            /* check if there are some queues already created */
-            if ( numOfQueues > 0 ){
+            /* check if the queue is empty */
+            empty = emptyCheck(clientInfo.clientMessage.clusterID);
 
-                /* check if there is alread a queue with the same clusterID */
-                index = alreadyHasQueue(clientMsg.clusterID, numOfQueues);
-
-                /* cluster does not yet have a queue */
-                if ( index == -1 )
-                {
-                    /* add the item to a new queue */
-                    addItemToNewQueue(clientInfo, &numOfQueues);
-                    /* send server ack to client */
-                    sendServerAck( socketID, clientInfo, &queueArray[numOfQueues-1]);
-
-                }
-                /* cluster already has a queue */
-                else
-                {
-                    /* insert item into queue */
-                    insertItem(clientInfo, &queueArray[index]);
-                }
+            /* if the queue is NOT empty, simply add the item, 
+               but if queue is empty add the item and send ack immediately */
+            if ( empty != 1 )
+            {
+                /* add the item to the queue*/
+                addItemToQueue(clientInfo);
 
             }
             /* no queues yet so create 1 and then immediately send ack back */
             else
             {
-                /* add the item to a new queue */
-                addItemToNewQueue(clientInfo, &numOfQueues);
+                /* add the item to the queue */
+                addItemToQueue(clientInfo);
+
                 /* send server ack to client */
-                sendServerAck( socketID, clientInfo, &queueArray[numOfQueues-1]);
+                sendServerAck( socketID, clientInfo, &queueArray[clientInfo.clientMessage.clusterID]);
             }
 
 
@@ -109,20 +95,13 @@ int main(int argc, char *argv[])
         /* else server recieved a reply from the client */
         else
         {
-            /* since its request server must have queue with its clusterID */
-            /* so get queue */
-            printf("Reply: %d, %d, %s\n", clientMsg.clusterID, clientMsg.isWriting, clientMsg.filename);
-
-            index = alreadyHasQueue(clientMsg.clusterID, numOfQueues);
-
-            /* simple error check */
-            if( index == -1)
-            {
-                printf("Something has gone wrong, there should be a queue with this cluster already\n");
-                exit(0);
-            }
+            printf("Reply: Cluster: %d, Writer: %d, Filename: %s\n", clientMsg.clusterID, clientMsg.isWriting, clientMsg.filename);
             
-            /* remove the item from the list */
+            /* store the clusterID for ease of use */
+            index = clientMsg.clusterID;
+
+            /* since the server has recieved a reply the queue for this cluster must not be empty yet,
+               therefore we will remove the first element from the queue now */
             removeItem(&queueArray[index], &queueHeadItem);
 
             /* if client item removed was a writer turn off writer flag */
@@ -136,8 +115,15 @@ int main(int argc, char *argv[])
                 decrementReaders(&queueArray[index]);
             }
 
-            /* now look at the next members of the queue */
-            checkQueue( socketID, queueHeadItem, index);
+            /* check if the queue is empty */
+            empty = emptyCheck(index);
+
+            /* only recursively check the queue if its not empty */
+            if ( empty != 1 )
+            {
+                /* now look at the next members of the queue */
+                checkQueue( socketID, index);
+            }
         }
     }
 
@@ -146,30 +132,21 @@ int main(int argc, char *argv[])
     return 0;   
 }
 
-int alreadyHasQueue(int clusterID, int numOfQueues)
+int emptyCheck(int clusterID)
 {
-    int i;
+    int empty = 0;
     itemType headItem;
 
-    for( i = 0; i < numOfQueues; i++ )
-    {
-        peakAtHead( &queueArray[i], &headItem);
+    peakAtHead( &queueArray[clusterID], &headItem);
 
-        if (  headItem.isEmpty != 1 )
-        {
-            /* if there is a queue already with this cluster return the queue (index in queueArray) */
-            if( headItem.clientMessage.clusterID == clusterID ){
-                return i;
-            }
-        }
-        /* found queue that is empty */
-        else
-        {
-            break;
-        }
+    /* check the isEmpty flag of the queue */
+    if ( headItem.isEmpty == 1 )
+    {
+        /* the queue is empty  so set return flag */
+        empty = 1;
     }
 
-    return -1;
+    return empty;
 }
 
 void sendServerAck(int socketID, itemType clientInfo, Queue *Q)
@@ -196,15 +173,13 @@ void sendServerAck(int socketID, itemType clientInfo, Queue *Q)
 
 }
 
-void addItemToNewQueue(itemType clientInfo, int *numOfQueues)
+void addItemToQueue(itemType clientInfo)
 {
-    /* add item into first avaible queue */
-    insertItem(clientInfo, &queueArray[*numOfQueues]);
-    /* increase the number of queues */
-    (*numOfQueues)++;
+    /* add item to queue officilaited with their clusterID */
+    insertItem(clientInfo, &queueArray[clientInfo.clientMessage.clusterID]);
 }
 
-void checkQueue(int socketID, itemType clientInfo, int index)
+void checkQueue(int socketID, int index)
 {
     itemType item;
     Queue *Q = &queueArray[index];
@@ -229,7 +204,7 @@ void checkQueue(int socketID, itemType clientInfo, int index)
     {
 
         /* get the element */
-        getNextElement(Temp, &item);
+        getElement(Temp, &item);
 
         /* found a writer */
         if ( item.clientMessage.isWriting == 1 )
@@ -244,9 +219,11 @@ void checkQueue(int socketID, itemType clientInfo, int index)
                     sendServerAck(socketID, item, &queueArray[index]);
                 }
             }
+
+            break;
         }
         /* found a reader */
-        else
+        else if ( item.clientMessage.isWriting == 0 )
         {
             if ( item.beenCalled == 1 )
             {
@@ -255,10 +232,14 @@ void checkQueue(int socketID, itemType clientInfo, int index)
             else
             {
                 /* Set flag for been called */
-                item.beenCalled = 1;
+                setBeenCalledFlag(Temp);
                 /* let the reader have access */
                 sendServerAck(socketID, item, &queueArray[index]);
             }
+        }
+        else
+        {
+            break;
         }
 
         /* go to next element in the queue */

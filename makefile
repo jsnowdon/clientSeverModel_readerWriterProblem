@@ -24,10 +24,10 @@ all: queue client server
 debug: queue_DEBUG client_DEBUG server_DEBUG
 
 clean:
+		@ rm ./file*.bin
 		@ rm $(BDIR)/client *.o
 		@ rm $(BDIR)/server *.o
 		@ rm $(BDIR)/queue *.o
-		@ rm ./file*.bin
 
 #Execution
 client: $(CLIENT_OBJS)

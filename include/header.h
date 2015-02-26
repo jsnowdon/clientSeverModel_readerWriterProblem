@@ -66,15 +66,16 @@ int empty(Queue *Q);
 void insertItem(itemType R, Queue *Q);
 void removeItem(Queue *Q, itemType *F);
 void peakAtHead(Queue *Q, itemType *head);
-void getNextElement(QueueNode *Q, itemType *item);
+void getElement(QueueNode *Q, itemType *item);
+void setBeenCalledFlag(QueueNode *Q);
 void setWriterFlag(Queue *Q);
 void unsetWriterFlag(Queue *Q);
 void incrementReaders(Queue *Q);
 void decrementReaders(Queue *Q);
 
-int alreadyHasQueue(int clusterID, int numOfQueues);
+int emptyCheck(int clusterID);
 void sendServerAck(int socketID, itemType clientInfo, Queue *Q);
-void addItemToNewQueue(itemType clientInfo, int *numOfQueues);
-void checkQueue(int socketID, itemType clientInfo, int index );
+void addItemToQueue(itemType clientInfo);
+void checkQueue(int socketID, int index);
 
 #endif

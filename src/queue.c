@@ -58,7 +58,9 @@ void removeItem(Queue *Q, itemType *F)
 	/* Make sure the queue is not empty */
 	if ( Q->front == NULL )
 	{
-		printf("Attempting to remove item from empty list\n");
+		/* do noting because its empty */
+		printf("Error\n");
+		exit(0);
 	}
 	else
 	{
@@ -91,10 +93,15 @@ void peakAtHead(Queue *Q, itemType *head)
 	}
 }
 
-void getNextElement(QueueNode *Q, itemType *item)
+void getElement(QueueNode *Q, itemType *item)
 {
 	/* get the item at that position in the queue */
 	*item = Q->item;
+}
+
+void setBeenCalledFlag(QueueNode *Q)
+{
+	Q->item.beenCalled = 1;
 }
 
 void setWriterFlag(Queue *Q)

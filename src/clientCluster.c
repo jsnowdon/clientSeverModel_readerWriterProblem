@@ -257,10 +257,6 @@ void *readerThreads(void *threadData)
         fclose(fp);
         free(buffer);
 
-        /* slow it down */
-        /*sleep for a bit*/
-        sleep(rand()%2);
-
         /* Create reply message for server */
         msgToServer.isRequest = 0;
         /* Tell server we are done with the file */
@@ -392,11 +388,8 @@ void *writerThreads(void *threadData)
         /*cleanup*/
         fclose(fp);
 
-        /* slow it down */
-        /*sleep for a bit*/
-        sleep(rand()%2);
-
         /* Create reply message for server */
+       // msgToServer.isWriting = 1;
         msgToServer.isRequest = 0;
 
         //printf("SENT REPLY: id:%d, cluster%d\n", threadID, clusterID );
