@@ -1,0 +1,63 @@
+Please enter the number of clusters:
+9
+Please enter the number of Reader Threads per cluster:
+2
+Please enter the number of Writer Threads per cluster:
+1
+Please enter the number of iterations:
+3
+---------------------------------------
+I am part of cluster #3, thread #1, iteration #1 and the file contains: 0
+I am part of cluster #5, thread #1, iteration #1 and the file contains: 0
+I am part of cluster #6, thread #1, iteration #1 and the file contains: 0
+I am part of cluster #4, thread #1, iteration #1 and the file contains: 0
+I am part of cluster #1, thread #1, iteration #1 and the file contains: 0
+I am part of cluster #2, thread #1, iteration #1 and the file contains: 0
+I am part of cluster #2, thread #2, iteration #1 and the file contains: 0
+I am part of cluster #3, thread #2, iteration #1 and the file contains: 0
+I am part of cluster #4, thread #2, iteration #1 and the file contains: 0
+I am part of cluster #1, thread #2, iteration #1 and the file contains: 0
+I am part of cluster #5, thread #2, iteration #1 and the file contains: 0
+I am part of cluster #6, thread #2, iteration #1 and the file contains: 0
+I am part of cluster #7, thread #1, iteration #1 and the file contains: 0
+I am part of cluster #8, thread #1, iteration #1 and the file contains: 0
+I am part of cluster #2, thread #2, iteration #2 and the file contains: 1
+I am part of cluster #9, thread #1, iteration #1 and the file contains: 0
+I am part of cluster #8, thread #2, iteration #1 and the file contains: 0
+I am part of cluster #5, thread #2, iteration #2 and the file contains: 1
+I am part of cluster #3, thread #1, iteration #2 and the file contains: 1
+I am part of cluster #9, thread #2, iteration #1 and the file contains: 0
+I am part of cluster #1, thread #2, iteration #2 and the file contains: 1
+I am part of cluster #8, thread #2, iteration #2 and the file contains: 1
+I am part of cluster #7, thread #2, iteration #1 and the file contains: 0
+I am part of cluster #3, thread #1, iteration #3 and the file contains: 2
+I am part of cluster #5, thread #2, iteration #3 and the file contains: 2
+I am part of cluster #9, thread #2, iteration #2 and the file contains: 1
+I am part of cluster #9, thread #1, iteration #2 and the file contains: 1
+I am part of cluster #7, thread #1, iteration #2 and the file contains: 0
+I am part of cluster #9, thread #2, iteration #3 and the file contains: 2
+I am part of cluster #7, thread #1, iteration #3 and the file contains: 1
+I am part of cluster #1, thread #1, iteration #2 and the file contains: 1
+I am part of cluster #2, thread #1, iteration #2 and the file contains: 1
+I am part of cluster #1, thread #1, iteration #3 and the file contains: 1
+I am part of cluster #2, thread #1, iteration #3 and the file contains: 1
+I am part of cluster #4, thread #1, iteration #2 and the file contains: 2
+I am part of cluster #5, thread #1, iteration #2 and the file contains: 3
+I am part of cluster #6, thread #1, iteration #2 and the file contains: 2
+I am part of cluster #3, thread #2, iteration #2 and the file contains: 3
+I am part of cluster #4, thread #2, iteration #2 and the file contains: 2
+I am part of cluster #3, thread #2, iteration #3 and the file contains: 3
+I am part of cluster #5, thread #1, iteration #3 and the file contains: 3
+I am part of cluster #6, thread #2, iteration #2 and the file contains: 2
+I am part of cluster #4, thread #2, iteration #3 and the file contains: 2
+I am part of cluster #6, thread #2, iteration #3 and the file contains: 2
+I am part of cluster #8, thread #1, iteration #2 and the file contains: 1
+I am part of cluster #2, thread #2, iteration #3 and the file contains: 2
+I am part of cluster #1, thread #2, iteration #3 and the file contains: 2
+I am part of cluster #8, thread #2, iteration #3 and the file contains: 3
+I am part of cluster #9, thread #1, iteration #3 and the file contains: 2
+I am part of cluster #7, thread #2, iteration #2 and the file contains: 1
+I am part of cluster #4, thread #1, iteration #3 and the file contains: 3
+I am part of cluster #6, thread #1, iteration #3 and the file contains: 3
+I am part of cluster #8, thread #1, iteration #3 and the file contains: 3
+I am part of cluster #7, thread #2, iteration #3 and the file contains: 2
